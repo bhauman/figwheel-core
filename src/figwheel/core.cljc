@@ -1,4 +1,4 @@
-(ns ^:figwheel-load figwheel.core
+(ns figwheel.core
   (:require
    #?@(:cljs
        [[figwheel.tools.heads-up :as heads-up]
@@ -531,7 +531,7 @@
                (when-let [deps-data (and (.exists deps-file) (slurp deps-file))]
                  (when-not (string/blank? deps-data)
                    [deps-data])))
-             (map
+             (keep
               #(add-dependencies-js % output-dir)
               ns-syms))))))
 

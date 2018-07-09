@@ -43,8 +43,12 @@
 (defn clj-spec-error? [tm]
   (-> tm :data :clojure.spec.alpha/problems))
 
+(defn cljs-no-file-for-namespace? [tm]
+  (-> tm :via first :data :cljs.repl/error (= :invalid-ns)))
+
 (defn exception-type? [tm]
   (cond
+    (cljs-no-file-for-namespace? tm) :cljs/no-file-for-namespace
     (cljs-missing-required-ns? tm) :cljs/missing-required-ns
     (cljs-analysis-ex? tm) :cljs/analysis-error
     (eof-reader-ex? tm)    :tools.reader/eof-reader-exception
@@ -71,6 +75,14 @@
 
 (defmethod message :clj/spec-based-syntax-error [tm]
   (first (string/split-lines (:cause tm))))
+
+(defmethod message :cljs/no-file-for-namespace [{:keys [cause] :as tm}]
+  (when cause
+    (when-let [ns' (second (re-matches #"^(\S+).*" cause))]
+      (format "Could not find file for namespace '%s'
+this is probably caused by a namespace/filepath miss-match 
+or a poorly configured classpath." ns'))))
+
 
 (defmulti blame-pos exception-type?)
 
