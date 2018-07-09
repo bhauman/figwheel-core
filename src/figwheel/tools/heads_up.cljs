@@ -194,6 +194,7 @@
                            data)]
     {:head (condp = tag
              "clj/compiler-exception"            "Couldn't load Clojure file"
+             "cljs/missing-required-ns"          "Could not Find Namespace"
              "cljs/analysis-error"               "Could not Analyze"
              "tools.reader/eof-reader-exception" "Could not Read"
              "tools.reader/reader-exception"     "Could not Read"

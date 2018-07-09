@@ -1,8 +1,11 @@
 (ns figwheel.tools.exceptions
   (:require
    [clojure.string :as string]
-   [clojure.java.io :as io]))
+   [clojure.java.io :as io])
+  (:import
+   [java.util.regex Pattern]))
 
+#_(remove-ns 'figwheel.tools.exceptions)
 ;; utils
 
 (defn relativize-local [path]
@@ -19,6 +22,11 @@
 
 (defn cljs-analysis-ex? [tm]
   (some #{:cljs/analysis-error} (keep #(get-in %[:data :tag]) (:via tm))))
+
+(defn cljs-missing-required-ns? [tm]
+  (and (cljs-analysis-ex? tm)
+       (string? (:cause tm))
+       (string/starts-with? (:cause tm) "No such namespace: ")))
 
 (defn reader-ex? [{:keys [data]}]
   (= :reader-exception (:type data)))
@@ -37,6 +45,7 @@
 
 (defn exception-type? [tm]
   (cond
+    (cljs-missing-required-ns? tm) :cljs/missing-required-ns
     (cljs-analysis-ex? tm) :cljs/analysis-error
     (eof-reader-ex? tm)    :tools.reader/eof-reader-exception
     (reader-ex? tm)        :tools.reader/reader-exception
@@ -48,6 +57,8 @@
 (derive :clj/spec-based-syntax-error :clj/compiler-exception)
 
 (derive :tools.reader/eof-reader-exception :tools.reader/reader-exception)
+
+(derive :cljs/missing-required-ns :cljs/analysis-error)
 
 (defmulti message exception-type?)
 
@@ -64,6 +75,20 @@
 (defmulti blame-pos exception-type?)
 
 (defmethod blame-pos :default [tm])
+
+(defmethod blame-pos :cljs/missing-required-ns [{:keys [cause] :as tm}]
+  (when-let [nmspc (and cause
+                        (second
+                         (re-matches #"No such namespace:\s([^,]+),.*" cause)))]
+    (when-let [file (-> tm :via first :data :file)]
+      (let [pat (Pattern/compile (str ".*" nmspc  ".*"))
+            [pre post]
+            (split-with
+             #(not (.matches (.matcher pat %)))
+             (line-seq (io/reader file)))]
+        (when-not (empty? post)
+          {:line (inc (count pre))
+           :column (inc (.indexOf (first post) nmspc))})))))
 
 (defmethod blame-pos :cljs/analysis-error [tm]
   (select-keys

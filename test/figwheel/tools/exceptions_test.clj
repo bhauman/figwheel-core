@@ -4,7 +4,9 @@
    [clojure.string :as string]
    [clojure.java.io :as io]
    [figwheel.tools.exceptions :refer :all]
-   [clojure.test :refer [deftest is testing]]))
+   [clojure.test :refer [deftest is testing]])
+  (:import
+   [java.util.regex Pattern]))
 
 #_(remove-ns 'figwheel.tools.exceptions-test)
 
@@ -14,7 +16,9 @@
 
 (defn example-test-file! [p code]
   (io/make-parents (io/file p))
-  (spit p (str (prn-str '(ns example.except)) code)))
+  (spit p (if (string/starts-with? code "(ns")
+            (str code)
+            (str (prn-str '(ns example.except)) code))))
 
 (defn fetch-exception [code]
   (let [p "dev/example/except.cljs"]
@@ -122,9 +126,21 @@
           :type 'java.lang.RuntimeException}
        (parse-exception (fetch-clj-exception "      (defn"))))
 
-
+  (is (= {:tag :cljs/missing-required-ns,
+          :message
+          "No such namespace: example.house, could not locate example/house.cljs, example/house.cljc, or JavaScript source providing \"example.house\" in file dev/example/except.cljs",
+          :line 2,
+          :column 16,
+          :file "dev/example/except.cljs",
+          :type 'clojure.lang.ExceptionInfo,
+          :data {:tag :cljs/analysis-error}}
+         (parse-exception
+          (fetch-exception
+           "(ns example.except
+    (:require [example.house]))
+"))))
+  
   )
-
 
 ;; TODO work on spec exceptions
 #_(def clj-version
