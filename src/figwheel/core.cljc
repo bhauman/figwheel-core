@@ -75,17 +75,18 @@
                           "" "^---" message)]]))
 
 (defn inline-message-display-data [{:keys [message line column file-excerpt] :as message-data}]
-  (let [{:keys [start-line path excerpt]} file-excerpt
-        lines (map-indexed
-               (fn [i l] (let [ln (+ i start-line)]
-                           (vector (if (= line ln) :error-in-code :code-line) ln l)))
-               (string/split-lines excerpt))
-        [begin end] (split-with #(not= :error-in-code (first %)) lines)]
-    (concat
-     (take-last 5 begin)
-     (take 1 end)
-     (pointer-message-lines message-data)
-     (take 5 (rest end)))))
+  (when file-excerpt
+    (let [{:keys [start-line path excerpt]} file-excerpt
+          lines (map-indexed
+                 (fn [i l] (let [ln (+ i start-line)]
+                             (vector (if (= line ln) :error-in-code :code-line) ln l)))
+                 (string/split-lines excerpt))
+          [begin end] (split-with #(not= :error-in-code (first %)) lines)]
+      (concat
+       (take-last 5 begin)
+       (take 1 end)
+       (pointer-message-lines message-data)
+       (take 5 (rest end))))))
 
 (defn file-line-column [{:keys [file line column]}]
   (cond-> ""
@@ -664,11 +665,12 @@
         parsed-exception' (cond-> parsed-exception
                             (not parsable-data?) (dissoc :data))]
     (format "figwheel.core.handle_exception_remote(%s);"
-            (json/write-str
-             (-> parsed-exception'
-                 (update :tag #(string/join "/" ((juxt namespace name) %)))
-                 pr-str
-                 edn/read-string)))))
+            (-> (cond-> parsed-exception'
+                  (:tag parsed-exception')
+                  (update :tag #(string/join "/" ((juxt namespace name) %))))
+                pr-str
+                edn/read-string
+                json/write-str))))
 
 (defn handle-exception [exception-o-throwable-map]
   (let [{:keys [file line] :as parsed-ex} (fig-ex/parse-exception exception-o-throwable-map)

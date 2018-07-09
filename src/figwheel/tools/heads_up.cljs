@@ -174,11 +174,12 @@
                      (partial pad-line-number max-line-number-length)) inline-error)))
 
 (defn format-inline-error [inline-error]
-  (let [lines (map format-inline-error-line (pad-line-numbers inline-error))]
-    (str "<pre style='whitespace:pre; overflow-x: scroll; display:block; font-family:monospace; font-size:0.8em; border-radius: 3px;"
-         " line-height: 1.1em; padding: 10px; background-color: rgb(24,26,38); margin-right: 5px'>"
-         (string/join "\n" lines)
-         "</pre>")))
+  (when (not-empty inline-error)
+    (let [lines (map format-inline-error-line (pad-line-numbers inline-error))]
+      (str "<pre style='whitespace:pre; overflow-x: scroll; display:block; font-family:monospace; font-size:0.8em; border-radius: 3px;"
+           " line-height: 1.1em; padding: 10px; background-color: rgb(24,26,38); margin-right: 5px'>"
+           (string/join "\n" lines)
+           "</pre>"))))
 
 (def flatten-exception #(take-while some? (iterate :cause %)))
 
