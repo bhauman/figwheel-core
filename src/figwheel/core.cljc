@@ -18,6 +18,9 @@
         [clojure.data.json :as json]
         [clojure.java.io :as io]
         [clojure.edn :as edn]
+        [clojure.tools.reader :as redr]
+        [clojure.tools.reader.edn :as redn]
+        [clojure.tools.reader.reader-types :as rtypes]        
         [figwheel.tools.exceptions :as fig-ex]]))
   #?(:cljs (:require-macros [figwheel.core]))
   (:import #?@(:cljs [[goog]
@@ -455,10 +458,30 @@
          (files source-file))
       (js-dependencies-with-file-urls js-dependency-index)))))
 
+(defn read-clj-forms [eof file]
+  (let [reader (rtypes/source-logging-push-back-reader (io/reader file))]
+    (repeatedly
+     #(try
+        (redr/read {:read-cond :allow :features #{:clj} :eof eof} reader)
+        (catch Throwable t
+          eof)))))
+
+(defn parse-clj-ns [file]
+  (let [eof (Object.)
+        res (first
+             (filter #(or
+                       (= eof %)
+                       (and (list? %)
+                            (= (first %) 'ns)))
+                     (read-forms eof file)))]
+    (when (not= res eof)
+      (second res))))
+
 (defn clj-paths->namespaces [paths]
   (->> paths
-       (filter #(.exists (io/file %)))
-       (map (comp :ns ana/parse-ns io/file))
+       (map io/file)
+       (filter #(.isFile %))
+       (keep parse-clj-ns)
        distinct))
 
 (defn figwheel-always-namespaces [figwheel-ns-meta]
