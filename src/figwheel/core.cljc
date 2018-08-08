@@ -607,7 +607,6 @@
         (doseq [ns affected-nses]
           (bapi/mark-cljs-ns-for-recompile! ns (output-dir)))
         affected-nses)
-      (seq 1)
       (catch Throwable t
         (throw (ex-info "Error Figwheel.Core's Clojure File reloading" {::internal true} t))))))
 
