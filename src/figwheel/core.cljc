@@ -473,7 +473,7 @@
                        (= eof %)
                        (and (list? %)
                             (= (first %) 'ns)))
-                     (read-forms eof file)))]
+                     (read-clj-forms eof file)))]
     (when (not= res eof)
       (second res))))
 
@@ -599,12 +599,17 @@
 
 ;; keep in mind that you need to reload clj namespaces before cljs compiling
 (defn reload-clj-namespaces [nses]
+  (doseq [ns nses] (require ns :reload))
   (when (not-empty nses)
-    (doseq [ns nses] (require ns :reload))
-    (let [affected-nses (bapi/cljs-dependents-for-macro-namespaces env/*compiler* nses)]
-      (doseq [ns affected-nses]
-        (bapi/mark-cljs-ns-for-recompile! ns (output-dir)))
-      affected-nses)))
+    ;; we are going to make internal exceptions behave differently
+    (try
+      (let [affected-nses (bapi/cljs-dependents-for-macro-namespaces env/*compiler* nses)]
+        (doseq [ns affected-nses]
+          (bapi/mark-cljs-ns-for-recompile! ns (output-dir)))
+        affected-nses)
+      (seq 1)
+      (catch Throwable t
+        (throw (ex-info "Error Figwheel.Core's Clojure File reloading" {::internal true} t))))))
 
 (defn reload-clj-files [files]
   (reload-clj-namespaces (clj-paths->namespaces files)))
