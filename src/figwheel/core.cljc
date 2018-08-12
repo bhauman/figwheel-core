@@ -529,17 +529,25 @@
 (defn changed-dependency-tree? [previous-compiler-env compiler-env]
   (not= (require-map previous-compiler-env) (require-map compiler-env)))
 
-(defrecord FakeReplEnv []
-  cljs.repl/IJavaScriptEnv
-  (-setup [this opts])
-  (-evaluate [_ _ _ js] js)
-  (-load [this ns url])
-  (-tear-down [_] true))
+(defn get-sources [ns-sym opts]
+  (seq
+   (when-not (ana/node-module-dep? ns-sym)
+     (let [input (cljs.repl/ns->input ns-sym opts)]
+       (if (contains? input :source-file)
+         ;; may need to provide the actual repl-env here
+         (->> (cljs.closure/compile-inputs [input]
+                                           (merge {:optimizations :none} opts))
+              (remove (comp #{["goog"]} :provides)))
+         (map #(cljs.closure/source-on-disk opts %)
+              (cljs.closure/add-js-sources [input] opts)))))))
 
-;; this is a hack for now, easy enough to write this without the hack
-(let [noop-repl-env (FakeReplEnv.)]
-  (defn add-dependencies-js [ns-sym output-dir]
-    (cljs.repl/load-namespace noop-repl-env ns-sym {:output-dir (or output-dir "out")})))
+(defn add-dependencies-js [ns-sym output-dir]
+  (let [opts {:output-dir (or output-dir "out")}
+        sb (StringBuffer.)]
+    (doseq [source (get-sources ns-sym opts)]
+      (with-open [rdr (io/reader (:url source))]
+        (.append sb (cljs.closure/add-dep-string opts source))))
+    (.toString sb)))
 
 (defn all-add-dependencies [ns-syms output-dir]
   (string/join
@@ -554,9 +562,11 @@
                (when-let [deps-data (and (.exists deps-file) (slurp deps-file))]
                  (when-not (string/blank? deps-data)
                    [deps-data])))
-             (keep
-              #(add-dependencies-js % output-dir)
-              ns-syms))))))
+             (filter
+              #(string? %)
+              (keep
+               #(add-dependencies-js % output-dir)
+               ns-syms)))))))
 
 (defn output-dir []
   (-> @env/*compiler* :options :output-dir (or "out")))
@@ -873,6 +883,9 @@
 
 (comment
 
+  (binding [cljs.env/*compiler* cenv]
+    (add-dependencies-js 'figwheel.core "out"))
+  
   (def cenv (cljs.env/default-compiler-env))
 
   (:cljs.analyzer/namespaces @cenv)
