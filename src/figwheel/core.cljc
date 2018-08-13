@@ -644,9 +644,12 @@
 
 (defn warning-info [{:keys [warning-type env extra path]}]
   (when warning-type
-    (let [file (io/file path)
+    (let [file (and path (io/file path))
+          path (if (and (not (string? path)) file)
+                 (str file)
+                 path)
           line (:line env)
-          file-excerpt (when (and file (.exists file))
+          file-excerpt (when (and file (.isFile file))
                          (file-excerpt file (max 1 (- line 10)) 20))
           message (cljs.analyzer/error-message warning-type extra)]
       (cond-> {:warning-type warning-type
