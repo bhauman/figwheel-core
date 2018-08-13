@@ -534,22 +534,20 @@
    (when-not (ana/node-module-dep? ns-sym)
      (let [input (cljs.repl/ns->input ns-sym opts)]
        (if (contains? input :source-file)
-         ;; may need to provide the actual repl-env here
          (->> (cljs.closure/compile-inputs [input]
                                            (merge {:optimizations :none} opts))
               (remove (comp #{["goog"]} :provides)))
-         (map #(cljs.closure/source-on-disk opts %)
+         (map #(cljs.closure/source-on-disk opts %) 
               (cljs.closure/add-js-sources [input] opts)))))))
 
-(defn add-dependencies-js [ns-sym output-dir]
-  (let [opts {:output-dir (or output-dir "out")}
-        sb (StringBuffer.)]
+(defn add-dependencies-js [ns-sym opts]
+  (let [sb (StringBuffer.)]
     (doseq [source (get-sources ns-sym opts)]
       (with-open [rdr (io/reader (:url source))]
         (.append sb (cljs.closure/add-dep-string opts source))))
     (.toString sb)))
 
-(defn all-add-dependencies [ns-syms output-dir]
+(defn all-add-dependencies [ns-syms opts]
   (string/join
    "\n"
    (distinct
@@ -558,14 +556,14 @@
               (string/split-lines %))
             (concat
              ;; this is strange because foreign libs aren't being included in add-dependencies above
-             (let [deps-file (io/file output-dir "cljs_deps.js")]
-               (when-let [deps-data (and (.exists deps-file) (slurp deps-file))]
+             (let [deps-file (io/file (:output-dir opts "out") "cljs_deps.js")]
+               (when-let [deps-data (and (.isFile deps-file) (slurp deps-file))]
                  (when-not (string/blank? deps-data)
                    [deps-data])))
              (filter
               #(string? %)
               (keep
-               #(add-dependencies-js % output-dir)
+               #(add-dependencies-js % opts)
                ns-syms)))))))
 
 (defn output-dir []
@@ -578,10 +576,15 @@
 ;; TODO since this is the only fn that needs state perhaps isolate
 ;; last compiler state here?
 (defn all-dependency-code [ns-syms]
-  (when-let [last-env (get @last-compiler-env env/*compiler*)]
-    (when (changed-dependency-tree? last-env @env/*compiler*)
+  (let [last-env (get @last-compiler-env env/*compiler*)]
+    (when (or (nil? last-env) (changed-dependency-tree? last-env @env/*compiler*))
       (let [roots (root-namespaces @env/*compiler*)]
-        (all-add-dependencies roots (output-dir))))))
+        (all-add-dependencies
+         roots
+         (merge
+          {:output-dir "out"
+           :optimizations :none}
+          (:options @env/*compiler*)))))))
 
 ;; TODO change this to reload_namespace_remote interface
 ;; I think we only need the meta data for the current symbols
