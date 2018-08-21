@@ -667,8 +667,7 @@
       (cond-> {:warning-type warning-type
                :line    (:line env)
                :column  (:column env)
-               :ns      (-> env :ns :name)
-               :extra   extra}
+               :ns      (-> env :ns :name)}
         message      (assoc :message message)
         path         (assoc :file path)
         file-excerpt (assoc :file-excerpt file-excerpt)))))
