@@ -535,7 +535,9 @@
      (let [input (cljs.repl/ns->input ns-sym opts)]
        (if (contains? input :source-file)
          (->> (cljs.closure/compile-inputs [input]
-                                           (merge {:optimizations :none} opts))
+                                           (merge {:optimizations :none
+                                                   :npm-deps false}
+                                                  opts))
               (remove (comp #{["goog"]} :provides)))
          (map #(cljs.closure/source-on-disk opts %) 
               (cljs.closure/add-js-sources [input] opts)))))))
@@ -586,6 +588,16 @@
            :optimizations :none}
           (:options @env/*compiler*)))))))
 
+(defn json-write-str [arg]
+  (try
+    (json/write-str arg)
+    (catch Throwable t
+      (when-let [log  (resolve 'figwheel.main.logging/info)]
+        (log "Can't convert to json!!")
+        (log (pr-str arg))
+        (log (Throwable->map t)))
+      (json/write-str ""))))
+
 ;; TODO change this to reload_namespace_remote interface
 ;; I think we only need the meta data for the current symbols
 ;; better to send objects that hold a namespace and its meta data
@@ -595,8 +607,8 @@
 (defn reload-namespace-code [ns-syms]
   (str (all-dependency-code ns-syms)
        (format "figwheel.core.reload_namespaces(%s,%s)"
-               (json/write-str (mapv cljs.compiler/munge ns-syms))
-               (json/write-str (map-keys cljs.compiler/munge (find-figwheel-meta))))))
+               (json-write-str (mapv cljs.compiler/munge ns-syms))
+               (json-write-str (map-keys cljs.compiler/munge (find-figwheel-meta))))))
 
 (defn reload-namespaces [ns-syms]
   (let [ns-syms (if (false? (:hot-reload-cljs *config*)) [] ns-syms)
@@ -670,7 +682,7 @@
 
 (defn compiler-warnings-code [warning-infos]
   (format "figwheel.core.compile_warnings_remote(%s);"
-          (json/write-str warning-infos)))
+          (json-write-str warning-infos)))
 
 (defn handle-warnings [warnings]
   (when-let [warns (warnings->warning-infos warnings)]
@@ -713,7 +725,7 @@
                   (update :tag #(string/join "/" ((juxt namespace name) %))))
                 pr-str
                 edn/read-string
-                json/write-str))))
+                json-write-str))))
 
 (defn handle-exception [exception-o-throwable-map]
   (let [{:keys [file line] :as parsed-ex} (fig-ex/parse-exception exception-o-throwable-map)
