@@ -532,7 +532,8 @@
 (defn get-sources [ns-sym opts]
   (seq
    (when-not (ana/node-module-dep? ns-sym)
-     (let [input (cljs.repl/ns->input ns-sym opts)]
+     (when-let [input (try (cljs.repl/ns->input ns-sym opts)
+                           (catch Throwable t nil))]
        (if (contains? input :source-file)
          (->> (cljs.closure/compile-inputs [input]
                                            (merge {:optimizations :none
