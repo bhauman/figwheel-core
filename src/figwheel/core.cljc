@@ -129,9 +129,8 @@
 ;; --------------------------------------------------
 ;; Cross Platform event dispatch
 ;; --------------------------------------------------
-(def ^:export event-target (if (and (exists? js/document)
-                                    (exists? js/document.body))
-                             js/document.body
+(def ^:export event-target (if false ;;(exists? js/document)
+                             js/document
                              (EventTarget.)))
 
 (defonce listener-key-map (atom {}))
