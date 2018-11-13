@@ -116,7 +116,8 @@
           :file "dev/example/except.clj",
           :type 'java.lang.RuntimeException
           }
-         (parse-exception (fetch-clj-exception "#asdf {}"))))
+         (dissoc (parse-exception (fetch-clj-exception "#asdf {}"))
+                 :data)))
 
   (is (= {:tag :clj/compiler-exception,
           :message "EOF while reading, starting at line 2",
@@ -124,7 +125,8 @@
           :column 1,
           :file "dev/example/except.clj",
           :type 'java.lang.RuntimeException}
-       (parse-exception (fetch-clj-exception "      (defn"))))
+         (dissoc (parse-exception (fetch-clj-exception "      (defn"))
+                 :data)))
 
   (is (= {:tag :cljs/missing-required-ns,
           :message
