@@ -674,8 +674,6 @@
 
 (defn warnings->warning-infos [warnings]
   (->> warnings
-       (filter
-        (comp cljs.analyzer/*cljs-warnings* :warning-type))
        (map warning-info)
        not-empty))
 
@@ -856,12 +854,13 @@
        (binding [cljs.analyzer/*cljs-warning-handlers*
                  (conj cljs.analyzer/*cljs-warning-handlers*
                        (fn [warning-type env extra]
-                         (vswap! local-data update :warnings
-                                 (fnil conj [])
-                                 {:warning-type warning-type
-                                  :env env
-                                  :extra extra
-                                  :path ana/*cljs-file*})))]
+                         (when (warning-type cljs.analyzer/*cljs-warnings*)
+                           (vswap! local-data update :warnings
+                                   (fnil conj [])
+                                   {:warning-type warning-type
+                                    :env env
+                                    :extra extra
+                                    :path ana/*cljs-file*}))))]
          (try
            (swap! compiler-env vary-meta assoc ::compile-data {:started (System/currentTimeMillis)})
            (let [res (cljs-build src opts compiler-env)]
