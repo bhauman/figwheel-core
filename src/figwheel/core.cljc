@@ -129,7 +129,7 @@
 ;; --------------------------------------------------
 ;; Cross Platform event dispatch
 ;; --------------------------------------------------
-(def ^:export event-target (if false ;;(exists? js/document)
+(def ^:export event-target (if (exists? js/document)
                              js/document
                              (EventTarget.)))
 
