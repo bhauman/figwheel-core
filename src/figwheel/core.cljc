@@ -333,18 +333,16 @@
     (swap! state #(-> %
                       (assoc-in [::reload-state :reload-started] (.getTime (js/Date.)))
                       (assoc-in [::reload-state :exception] exception-data)))
-    (glog/info logger "Compile Exception")
-    (when (or type message)
-      (glog/info logger (string/join " : "(filter some? [type message]))))
-    (when file
-      (glog/info logger (str "Error on " (file-line-column exception-data))))
+    (glog/warning
+     logger
+     (cond-> "Compile Exception - "
+       (or type message) (str (string/join " : " (filter some? [type message])))
+       file (str " in " (file-line-column exception-data))))
     (finally
       (swap! state assoc-in [::reload-state] {}))))
 
 (defn ^:export handle-exception-remote [exception-data]
-  (handle-exception (js->clj exception-data :keywordize-keys true)))
-
-))
+  (handle-exception (js->clj exception-data :keywordize-keys true)))))
 
 #?(:clj
    (do
