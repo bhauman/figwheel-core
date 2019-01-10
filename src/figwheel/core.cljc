@@ -23,7 +23,7 @@
         [clojure.tools.reader.reader-types :as rtypes]        
         [figwheel.tools.exceptions :as fig-ex]]))
   #?(:cljs (:require-macros [figwheel.core]))
-  (:import #?@(:cljs [[goog]
+  (:import #?@(:cljs [goog
                       [goog.debug Console]
                       [goog.async Deferred]
                       [goog Promise]
