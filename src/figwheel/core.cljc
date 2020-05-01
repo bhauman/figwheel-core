@@ -218,12 +218,6 @@
         (goog.string/startsWith "clojure." ns)
         (goog.string/startsWith "goog." ns))))
 
-(defn name->path [ns]
-  (gobj/get js/goog.dependencies_.nameToPath ns))
-
-(defn provided? [ns]
-  (gobj/get js/goog.dependencies_.written (name->path (name ns))))
-
 (defn ns-exists? [ns]
   (some? (reduce (fnil gobj/get #js{})
                  goog.global (string/split (name ns) "."))))
@@ -236,8 +230,7 @@
      (or
       (:figwheel-always meta-data)
       (:figwheel-load meta-data)
-      ;; might want to use .-visited here
-      (provided? namespace)
+      ;; don't reload it if it doesn't exist
       (ns-exists? namespace)))))
 
 ;; ----------------------------------------------------------------
