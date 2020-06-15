@@ -1,4 +1,4 @@
-(defproject com.bhauman/figwheel-core "0.2.9-SNAPSHOT"
+(defproject com.bhauman/figwheel-core "0.2.9"
   :description "Figwheel core provides code reloading facilities for ClojureScript."
   :url "https://github.com/bhauman/figwheel-core"
   :license {:name "Eclipse Public License - v 1.0"
