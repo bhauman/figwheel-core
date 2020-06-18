@@ -210,7 +210,8 @@
                      type (str (escape type))
                      (and type message) (str ": ")
                      message (str "<span style=\"font-weight:bold;\">" (escape message) "</span>"))
-                   (when data-for-display
+                   (when (and (not (pos? (count error-inline)))
+                              data-for-display)
                      (str "<pre style=\"white-space: pre-wrap\">"
                           (goog.string/trimRight (with-out-str (pp/pprint data-for-display)))
                           "</pre>"))

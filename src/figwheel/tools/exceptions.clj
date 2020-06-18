@@ -8,6 +8,16 @@
 #_(remove-ns 'figwheel.tools.exceptions)
 ;; utils
 
+(defn map-keys [f m]
+  (into {} (map (fn [[k v]]
+                  (clojure.lang.MapEntry. (f k)  v)) m)))
+
+(defn un-clojure-error-keywords [m]
+  (map-keys #(if (= "clojure.error" (namespace %))
+             (keyword (name %))
+             %)
+            m))
+
 (defn relativize-local [path]
   (.getPath
    (.relativize
@@ -102,6 +112,14 @@ or a poorly configured classpath." ns'))))
           {:line (inc (count pre))
            :column (inc (.indexOf (first post) nmspc))})))))
 
+(defmethod blame-pos :cljs/general-compile-failure [tm]
+  (-> (some->> tm :via reverse (filter #(or (get-in % [:data :line])
+                                                       (get-in % [:data :clojure.error/line])))
+               first
+               :data
+               un-clojure-error-keywords)
+      (select-keys [:line :column])))
+
 (defmethod blame-pos :cljs/analysis-error [tm]
   (select-keys
    (some->> tm :via reverse (filter #(get-in % [:data :line])) first :data)
@@ -162,13 +180,12 @@ or a poorly configured classpath." ns'))))
 (defmulti data exception-type?)
 
 (defmethod data :default [tm]
-  (or (:data tm) (->> tm :via reverse (keep :data) first)))
+  (un-clojure-error-keywords (or (:data tm) (->> tm :via reverse (keep :data) first))))
 
 #_(defmethod data :clj/spec-based-syntax-error [tm] nil)
 
 (defn ex-type [tm]
   (some-> tm :via last :type pr-str symbol))
-
 
 (defn parse-exception [e]
   (let [tm     (if (instance? Throwable e) (Throwable->map e) e)

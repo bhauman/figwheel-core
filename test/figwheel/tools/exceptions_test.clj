@@ -57,6 +57,36 @@
            :tag :cljs/analysis-error}}
          (dissoc (parse-exception (fetch-exception "(defn)")) :message)))
 
+  (let [ex (parse-exception (fetch-exception "(defn dddd2344)"))]
+    (is (#{:cljs/general-compile-failure :cljs/analysis-error}
+         (:tag ex)))
+    (if (= :cljs/general-compile-failure (:tag ex))
+      (is (= {:tag :cljs/general-compile-failure,
+              :message "Parameter declaration missing",
+              :line 2,
+              :column 1,
+              :file "dev/example/except.cljs",
+              :type 'java.lang.IllegalArgumentException,
+              :data
+              {:source "dev/example/except.cljs",
+               :line 2,
+               :column 1,
+               :phase :macroexpansion,
+               :symbol 'cljs.core/defn}}
+             ex))
+      (is (= {:tag :cljs/analysis-error,
+              :message "Parameter declaration missing",
+              :line 2,
+              :column 1,
+              :file "dev/example/except.cljs",
+              :type 'java.lang.IllegalArgumentException,
+              :data
+              {:file "dev/example/except.cljs",
+               :line 2,
+               :column 1,
+               :tag :cljs/analysis-error}}
+             ex))))
+
   (is (= "Wrong number of args (0) passed to"
          (some-> (fetch-exception "(defn)")
                  parse-exception
