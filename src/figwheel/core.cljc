@@ -260,7 +260,9 @@
                             (map str (concat (string/split n #"\.") [f])))]
         (do
           (glog/info logger (str "Calling " (pr-str hook-key) " hook - " n "." f))
-          (apply hook args))
+          (try
+            (apply hook args)
+            (catch js/Error e nil)))
         (glog/warning logger (str "Unable to find " (pr-str hook-key) " hook - " n "." f))))))
 
 (defn ^:export reload-namespaces [namespaces figwheel-meta]
