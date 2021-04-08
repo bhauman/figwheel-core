@@ -108,7 +108,27 @@
 ;;
 ;; set level (.setLevel logger goog.debug.Logger.Level.INFO)
 ;; disable   (.setCapturing log-console false)
-(defonce logger (glog/getLogger "Figwheel"))
+
+(defn version-value [v]
+  (try
+    (->> (string/split v #"[^\d]")
+         (take 3)
+         (map #(js/parseInt %))
+         (map * [100000000000 10000 1])
+         (reduce +))
+    (catch js/Error e
+      (* 100000000000 100))))
+
+(defonce logger
+  (if (>= (version-value *clojurescript-version*) (version-value "1.10.844"))
+    (goog.debug.Logger. "Figwheel")
+    (.call glog/getLogger nil "Figwheel")))
+
+(defn glog-info [log msg]
+  (.call glog/info nil log msg))
+
+(defn glog-warning [log msg]
+  (.call glog/warning nil log msg))
 
 (defn ^:export console-logging []
   (when-not (gobj/get goog.debug.Console "instance")
@@ -259,9 +279,9 @@
                             goog.global
                             (map str (concat (string/split n #"\.") [f])))]
         (do
-          (glog/info logger (str "Calling " (pr-str hook-key) " hook - " n "." f))
+          (glog-info logger (str "Calling " (pr-str hook-key) " hook - " n "." f))
           (apply hook args))
-        (glog/warning logger (str "Unable to find " (pr-str hook-key) " hook - " n "." f))))))
+        (glog-warning logger (str "Unable to find " (pr-str hook-key) " hook - " n "." f))))))
 
 (defn ^:export reload-namespaces [namespaces figwheel-meta]
   ;; reconstruct serialized data
@@ -288,11 +308,11 @@
             (fn []
               (try
                 (when (not-empty to-reload)
-                  (glog/info logger (str "loaded " (pr-str to-reload)))
+                  (glog-info logger (str "loaded " (pr-str to-reload)))
                   (call-hooks :after-load {:reloaded-namespaces to-reload})
                   (dispatch-event :figwheel.after-load {:reloaded-namespaces to-reload}))
                 (when-let [not-loaded (not-empty (filter (complement (set to-reload)) namespaces))]
-                  (glog/info logger (str "did not load " (pr-str not-loaded))))
+                  (glog-info logger (str "did not load " (pr-str not-loaded))))
                 (finally
                   (swap! state assoc ::reload-state {}))))]
         (if (and (exists? js/figwheel.repl)
@@ -310,7 +330,7 @@
     (js/setTimeout #(dispatch-event :figwheel.compile-warnings {:warnings warnings}) 0))
   (swap! state update-in [::reload-state :warnings] concat warnings)
   (doseq [warning warnings]
-    (glog/warning logger (str "Compile Warning - " (:message warning) " in " (file-line-column warning)))))
+    (glog-warning logger (str "Compile Warning - " (:message warning) " in " (file-line-column warning)))))
 
 (defn ^:export compile-warnings-remote [warnings-json]
   (compile-warnings (js->clj warnings-json :keywordize-keys true)))
@@ -325,7 +345,7 @@
     (swap! state #(-> %
                       (assoc-in [::reload-state :reload-started] (.getTime (js/Date.)))
                       (assoc-in [::reload-state :exception] exception-data)))
-    (glog/warning
+    (glog-warning
      logger
      (cond-> "Compile Exception - "
        (or type message) (str (string/join " : " (filter some? [type message])))
