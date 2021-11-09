@@ -109,20 +109,7 @@
 ;; set level (.setLevel logger goog.debug.Logger.Level.INFO)
 ;; disable   (.setCapturing log-console false)
 
-(defn version-value [v]
-  (try
-    (->> (string/split v #"[^\d]")
-         (take 3)
-         (map #(js/parseInt %))
-         (map * [100000000000 10000 1])
-         (reduce +))
-    (catch js/Error e
-      (* 100000000000 100))))
-
-(defonce logger
-  (if (>= (version-value *clojurescript-version*) (version-value "1.10.844"))
-    (goog.debug.Logger. "Figwheel")
-    (.call glog/getLogger nil "Figwheel")))
+(defonce logger (.call glog/getLogger nil nm))
 
 (defn glog-info [log msg]
   (.call glog/info nil log msg))
