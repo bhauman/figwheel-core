@@ -109,7 +109,7 @@
 ;; set level (.setLevel logger goog.debug.Logger.Level.INFO)
 ;; disable   (.setCapturing log-console false)
 
-(defonce logger (.call glog/getLogger nil nm))
+(defonce logger (.call glog/getLogger nil "Figwheel"))
 
 (defn glog-info [log msg]
   (.call glog/info nil log msg))
