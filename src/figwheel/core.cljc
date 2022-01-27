@@ -117,6 +117,9 @@
 (defn glog-warning [log msg]
   (.call glog/warning nil log msg))
 
+(defn glog-error [log msg]
+  (.call glog/error nil log msg))
+
 (defn ^:export console-logging []
   (when-not (gobj/get goog.debug.Console "instance")
     (let [c (goog.debug.Console.)]
@@ -267,7 +270,10 @@
                             (map str (concat (string/split n #"\.") [f])))]
         (do
           (glog-info logger (str "Calling " (pr-str hook-key) " hook - " n "." f))
-          (apply hook args))
+          (try
+            (apply hook args)
+            (catch js/Error e
+              (glog-error logger e))))
         (glog-warning logger (str "Unable to find " (pr-str hook-key) " hook - " n "." f))))))
 
 (defn ^:export reload-namespaces [namespaces figwheel-meta]
