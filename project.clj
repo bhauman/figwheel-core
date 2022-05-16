@@ -9,5 +9,5 @@
   :dependencies
   [[org.clojure/clojure "1.10.0"]
    [org.clojure/clojurescript "1.10.773" :exclusions [commons-codec]]
-   [org.clojure/clojure.data.json "2.4.0"]
+   [org.clojure/data.json "2.4.0"]
    ])
