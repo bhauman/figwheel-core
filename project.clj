@@ -1,4 +1,4 @@
-(defproject com.bhauman/figwheel-core "0.2.18-JETTY11"
+(defproject com.bhauman/figwheel-core "0.2.19-SNAPSHOT"
   :description "Figwheel core provides code reloading facilities for ClojureScript."
   :url "https://github.com/bhauman/figwheel-core"
   :license {:name "Eclipse Public License - v 1.0"
@@ -7,7 +7,7 @@
         :url "https://github.com/bhauman/figwheel-core"}
 
   :dependencies
-  [[org.clojure/clojure "1.10.3"]
+  [[org.clojure/clojure "1.10.0"]
    [org.clojure/clojurescript "1.10.773" :exclusions [commons-codec]]
-   [org.clojure/data.json "2.5.1"]
+   [org.clojure/data.json "2.4.0"]
    ])
