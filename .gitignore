@@ -20,6 +20,7 @@ target
 .lein-classpath
 \#*\#
 .\#*
+*~
 *.jar
 *.class
 dev.cljs.edn
@@ -31,3 +32,4 @@ pom.xml
 pom.xml.asc
 .rebel_readline_history
 
+.DS_Store
